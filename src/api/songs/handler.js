@@ -1,65 +1,39 @@
 const ClientError = require('../../exceptions/ClientError');
 
-class AlbumsHandler {
+class SongsHandler {
   constructor(service, validator) {
     this._service = service;
     this._validator = validator;
 
-    this.getAlbumsHandler = this.getAlbumsHandler.bind(this);
-    this.getAlbumByIdHandler = this.getAlbumByIdHandler.bind(this);
-    this.postAlbumHandler = this.postAlbumHandler.bind(this);
-    this.putAlbumByIdHandler = this.putAlbumByIdHandler.bind(this);
-    this.deleteAlbumByIdHandler = this.deleteAlbumByIdHandler.bind(this);
+    this.postSongHandler = this.postSongHandler.bind(this);
+    this.getSongsHandler = this.getSongsHandler.bind(this);
+    this.getSongByIdHandler = this.getSongByIdHandler.bind(this);
+    this.putSongByIdHandler = this.putSongByIdHandler.bind(this);
+    this.deleteSongByIdHandler = this.deleteSongByIdHandler.bind(this);
   }
 
+  // GET ALL SONG- Mendapatkan Semua LAgu
+  // Endpoint: GET /songs/
 
-  // GET ALL ALBUM -  Mendapatkan semua album
-  // Endpoint: GET /albums
-  // Status code 200
+  // Status code 200 (ok)
   // body:
   //    - status: "success"
   //    - data:
-  //        - album: album
-  async getAlbumsHandler(request, h) {
+  //        - songs: songs
+  async getSongsHandler(request, h) {
+    const {title, performer} = request.query;
     try {
-      const albums = await this._service.getAlbums();
+      let songs = await this._service.getSongs(title, performer);
+      songs = songs.map((song) => ({
+        id: song.id,
+        title: song.title,
+        performer: song.performer,
+      }));
       const response = h.response({
         status: 'success',
-        message: 'Berhasil mengambil daftar album',
+        message: 'Berhasil mengambil daftar lagu',
         data: {
-          albums,
-        },
-      });
-      response.code(200);
-      return response;
-    } catch (error) {
-      // Server Error
-      const response = h.response({
-        status: 'error',
-        message: 'Internal Server Error',
-      });
-      response.code(500);
-      console.error(error);
-      return response;
-    }
-  }
-
-  // GET ALBUM BY ID - Mendapatkan album berdasar ID
-  // Endpoint: GET /albums/{id}
-  // Status code 200
-  // body:
-  //    - status: "success"
-  //    - data:
-  //        - album: album
-  async getAlbumByIdHandler(request, h) {
-    try {
-      const {id} = request.params;
-      const album = await this._service.getAlbumById(id);
-      const response = h.response({
-        status: 'success',
-        message: 'Berhasil mengambil album',
-        data: {
-          album,
+          songs,
         },
       });
       response.code(200);
@@ -85,28 +59,85 @@ class AlbumsHandler {
     }
   }
 
-  // POST ALBUM - Menambahkan album
-  // Endpoint: POST /albums
+  // GET SONG BY ID- Mendapatkan Lagu berdaar ID
+  // Endpoint: GET /songs/{id}
 
+  // Status code 200 (ok)
+  // body:
+  //    - status: "success"
+  //    - data:
+  //        - song: song
+  async getSongByIdHandler(request, h) {
+    try {
+      const {id} = request.params;
+      const song = await this._service.getSongById(id);
+      const response = h.response({
+        status: 'success',
+        message: 'Berhasil mengambil lagu',
+        data: {
+          song,
+        },
+      });
+      response.code(200);
+      return response;
+    } catch (error) {
+      if (error instanceof ClientError) {
+        const response = h.response({
+          status: 'fail',
+          message: error.message,
+        });
+        response.code(error.statusCode);
+        return response;
+      }
+
+      // Server Error
+      const response = h.response({
+        status: 'error',
+        message: 'Internal Server Error',
+      });
+      response.code(500);
+      console.error(error);
+      return response;
+    }
+  }
+
+  // INSERT SONG BY - Menambahkan Lagu
+  // Endpoint: POST /songs
   // Body Request
-  //    - name : string, required
-  //    - year : number, required
+  //     - title : string, required
+  //     - year : number, required
+  //     - genre : string, required
+  //     - performer : string, required
+  //     - duration : number?
+  //     - albumid : string?
 
   // Status code 201 (created)
   // body:
   //    - status: "success"
   //    - data:
-  //        - albumID: "album_id"
-  async postAlbumHandler(request, h) {
+  //        - songid: "song_id"
+  async postSongHandler(request, h) {
     try {
-      this._validator.validateAlbumPayload(request.payload);
-      const {name, year} = request.payload;
-      const albumId = await this._service.addAlbum({name, year});
+      this._validator.validateSongPayload(request.payload);
+      const {title, year, genre, performer, duration, albumId} =
+        request.payload;
+
+      // penyesuaian variable
+      const albumid = albumId;
+
+      const songId = await this._service.addSong({
+        title,
+        year,
+        genre,
+        performer,
+        duration,
+        albumid,
+      });
       const response = h.response({
         status: 'success',
-        message: 'Album berhasil ditambahkan',
+        message: 'Lagu berhasil ditambahkan',
         data: {
-          albumId,
+          songId,
         },
       });
       response.code(201);
@@ -132,26 +163,38 @@ class AlbumsHandler {
     }
   }
 
-  // EDIT ALBUM BY ID - Mengubah album berdasar Id album
-  // PUT /albums/{id}
+  // EDIT SONG BY ID- Mengubah Lagu berdasar ID
+  // Endpoint: PUT /songs/{id}
   // Body Request
-  //     - name : string, requireed
+  //     - title : string, required
   //     - year : number, required
+  //     - genre : string, required
+  //     - performer : string, required
+  //     - duration : number?
+  //     - albumid : string?
 
-  // Status code 200 (ok)
+  // Status code 201 (created)
   // body:
   //    - status: "success"
   //    - data:
-  //        - album: *any
-  async putAlbumByIdHandler(request, h) {
+  //        - message: *any
+  async putSongByIdHandler(request, h) {
     try {
-      this._validator.validateAlbumPayload(request.payload);
+      this._validator.validateSongPayload(request.payload);
       const {id} = request.params;
-      const {name, year} = request.payload;
-      await this._service.editAlbumById(id, {name, year});
+      const {title, year, genre, performer, duration, albumId} =
+        request.payload;
+      await this._service.editSongById(id, {
+        title,
+        year,
+        genre,
+        performer,
+        duration,
+        albumId,
+      });
       const response = h.response({
         status: 'success',
-        message: 'Berhasil mengubah data album',
+        message: 'Berhasil mengubah lagu',
       });
       response.code(200);
       return response;
@@ -176,21 +219,21 @@ class AlbumsHandler {
     }
   }
 
-  // DELETE ALBUM BY ID - Menghapus album berdasarkan ID
-  // Endpoint: DELETE /albums/{id}
+  // DELETE SONG BY ID- Menghapus Lagu berdaar ID
+  // Endpoint: DELETE /songs/{id}
 
   // Status code 200 (ok)
   // body:
   //    - status: "success"
   //    - data:
-  //        - albumID: *any
-  async deleteAlbumByIdHandler(request, h) {
+  //        - message: *any
+  async deleteSongByIdHandler(request, h) {
     try {
       const {id} = request.params;
-      await this._service.deleteAlbumById(id);
+      await this._service.deleteSongById(id);
       const response = h.response({
         status: 'success',
-        message: 'Berhasil menghapus data album',
+        message: 'Berhasil menghapus lagu',
       });
       response.code(200);
       return response;
@@ -216,4 +259,4 @@ class AlbumsHandler {
   }
 }
 
-module.exports = AlbumsHandler;
+module.exports = SongsHandler;
