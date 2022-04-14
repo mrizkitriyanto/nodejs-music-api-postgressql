@@ -6,6 +6,10 @@
 ``` shell
 npm install
 ```
+### Migrate Postgres Database
+``` shell
+npm run migrate up
+```
 ### Run command
 ``` shell
 # Production

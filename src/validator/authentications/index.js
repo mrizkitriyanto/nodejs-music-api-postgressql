@@ -5,6 +5,7 @@ const {
   DeleteAuthenticationPayloadSchema,
 } = require('./schema');
 
+
 const AuthenticationValidator = {
   validatePostAuthenticationPayload: (payload) => {
     const {error} = PostAuthenticationPayloadSchema.validate(payload);

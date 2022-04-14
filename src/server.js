@@ -2,6 +2,8 @@
 require('dotenv').config();
 
 const ClientError = require('./exceptions/ClientError');
+const NotFoundError= require('./exceptions/NotFoundError');
+const AuthorizationError = require('./exceptions/AuthorizationError');
 // Hapi
 const Hapi = require('@hapi/hapi');
 const Jwt = require('@hapi/jwt');
@@ -27,12 +29,24 @@ const AuthenticationsService = require('./services/postgres/AuthenticationsServi
 const TokenManager = require('./tokenize/TokenManager.js');
 const AuthenticationsValidator = require('./validator/authentications');
 
+// Collaborations
+const collaborations = require('./api/collaborations');
+const CollaborationsService = require('./services/postgres/CollaborationsService');
+const CollaborationsValidator = require('./validator/collaborations');
+
+// Playlists
+const playlists = require('./api/playlists');
+const PlaylistsService = require('./services/postgres/PlaylistsService');
+const PlaylistsValidator = require('./validator/playlists');
+
 
 const init = async () => {
   const albumsService = new AlbumsService();
   const songsService = new SongsService();
   const usersService = new UsersService();
   const authenticationsService = new AuthenticationsService();
+  const collaborationsService = new CollaborationsService();
+  const playlistsService = new PlaylistsService(collaborationsService);
 
   const server = Hapi.server({
     port: process.env.PORT,
@@ -99,6 +113,24 @@ const init = async () => {
         validator: AuthenticationsValidator,
       },
     },
+    {
+      plugin: collaborations,
+      options: {
+        collaborationsService,
+        playlistsService,
+        usersService,
+        validator: CollaborationsValidator,
+      },
+    },
+    {
+      plugin: playlists,
+      options: {
+        service: playlistsService,
+        collaborationsService,
+        songsService,
+        validator: PlaylistsValidator,
+      },
+    },
   ]);
 
   server.ext('onPreResponse', (request, h) => {
@@ -106,16 +138,32 @@ const init = async () => {
     const {response} = request;
 
     if (response instanceof ClientError) {
-      // membuat response baru dari response toolkit sesuai kebutuhan error handling
+      // membuat response baru dari response toolkit
+      // sesuai kebutuhan error handling
       const newResponse = h.response({
         status: 'fail',
         message: response.message,
       });
       newResponse.code(response.statusCode);
       return newResponse;
+    } else if (response instanceof NotFoundError) {
+      const newResponse = h.response({
+        status: 'fail',
+        message: error.message,
+      });
+      newResponse.code(response.statusCode);
+      return newResponse;
+    } else if (response instanceof AuthorizationError) {
+      const newResponse = h.response({
+        status: 'fail',
+        message: error.message,
+      });
+      newResponse.code(response.statusCode);
+      return newResponse;
     }
 
-    // jika bukan ClientError, lanjutkan dengan response sebelumnya (tanpa terintervensi)
+    // jika bukan ClientError, lanjutkan dengan response
+    // sebelumnya (tanpa terintervensi)
     return response.continue || response;
   });
 
