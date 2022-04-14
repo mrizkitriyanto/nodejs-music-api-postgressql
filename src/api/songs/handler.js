@@ -1,4 +1,3 @@
-const ClientError = require('../../exceptions/ClientError');
 
 class SongsHandler {
   constructor(service, validator) {
@@ -22,41 +21,22 @@ class SongsHandler {
   //        - songs: songs
   async getSongsHandler(request, h) {
     const {title, performer} = request.query;
-    try {
-      let songs = await this._service.getSongs(title, performer);
-      songs = songs.map((song) => ({
-        id: song.id,
-        title: song.title,
-        performer: song.performer,
-      }));
-      const response = h.response({
-        status: 'success',
-        message: 'Berhasil mengambil daftar lagu',
-        data: {
-          songs,
-        },
-      });
-      response.code(200);
-      return response;
-    } catch (error) {
-      if (error instanceof ClientError) {
-        const response = h.response({
-          status: 'fail',
-          message: error.message,
-        });
-        response.code(error.statusCode);
-        return response;
-      }
 
-      // Server Error
-      const response = h.response({
-        status: 'error',
-        message: 'Internal Server Error',
-      });
-      response.code(500);
-      console.error(error);
-      return response;
-    }
+    let songs = await this._service.getSongs(title, performer);
+    songs = songs.map((song) => ({
+      id: song.id,
+      title: song.title,
+      performer: song.performer,
+    }));
+    const response = h.response({
+      status: 'success',
+      message: 'Berhasil mengambil daftar lagu',
+      data: {
+        songs,
+      },
+    });
+    response.code(200);
+    return response;
   }
 
   // GET SONG BY ID- Mendapatkan Lagu berdaar ID
@@ -68,37 +48,17 @@ class SongsHandler {
   //    - data:
   //        - song: song
   async getSongByIdHandler(request, h) {
-    try {
-      const {id} = request.params;
-      const song = await this._service.getSongById(id);
-      const response = h.response({
-        status: 'success',
-        message: 'Berhasil mengambil lagu',
-        data: {
-          song,
-        },
-      });
-      response.code(200);
-      return response;
-    } catch (error) {
-      if (error instanceof ClientError) {
-        const response = h.response({
-          status: 'fail',
-          message: error.message,
-        });
-        response.code(error.statusCode);
-        return response;
-      }
-
-      // Server Error
-      const response = h.response({
-        status: 'error',
-        message: 'Internal Server Error',
-      });
-      response.code(500);
-      console.error(error);
-      return response;
-    }
+    const {id} = request.params;
+    const song = await this._service.getSongById(id);
+    const response = h.response({
+      status: 'success',
+      message: 'Berhasil mengambil lagu',
+      data: {
+        song,
+      },
+    });
+    response.code(200);
+    return response;
   }
 
   // INSERT SONG BY - Menambahkan Lagu
@@ -117,50 +77,30 @@ class SongsHandler {
   //    - data:
   //        - songid: "song_id"
   async postSongHandler(request, h) {
-    try {
-      this._validator.validateSongPayload(request.payload);
-      const {title, year, genre, performer, duration, albumId} =
+    this._validator.validateSongPayload(request.payload);
+    const {title, year, genre, performer, duration, albumId} =
         request.payload;
 
-      // penyesuaian variable
-      const albumid = albumId;
+    // penyesuaian variable
+    const albumid = albumId;
 
-      const songId = await this._service.addSong({
-        title,
-        year,
-        genre,
-        performer,
-        duration,
-        albumid,
-      });
-      const response = h.response({
-        status: 'success',
-        message: 'Lagu berhasil ditambahkan',
-        data: {
-          songId,
-        },
-      });
-      response.code(201);
-      return response;
-    } catch (error) {
-      if (error instanceof ClientError) {
-        const response = h.response({
-          status: 'fail',
-          message: error.message,
-        });
-        response.code(error.statusCode);
-        return response;
-      }
-
-      // Server Error
-      const response = h.response({
-        status: 'error',
-        message: 'Internal Server Error',
-      });
-      response.code(500);
-      console.error(error);
-      return response;
-    }
+    const songId = await this._service.addSong({
+      title,
+      year,
+      genre,
+      performer,
+      duration,
+      albumid,
+    });
+    const response = h.response({
+      status: 'success',
+      message: 'Lagu berhasil ditambahkan',
+      data: {
+        songId,
+      },
+    });
+    response.code(201);
+    return response;
   }
 
   // EDIT SONG BY ID- Mengubah Lagu berdasar ID
@@ -179,44 +119,24 @@ class SongsHandler {
   //    - data:
   //        - message: *any
   async putSongByIdHandler(request, h) {
-    try {
-      this._validator.validateSongPayload(request.payload);
-      const {id} = request.params;
-      const {title, year, genre, performer, duration, albumId} =
+    this._validator.validateSongPayload(request.payload);
+    const {id} = request.params;
+    const {title, year, genre, performer, duration, albumId} =
         request.payload;
-      await this._service.editSongById(id, {
-        title,
-        year,
-        genre,
-        performer,
-        duration,
-        albumId,
-      });
-      const response = h.response({
-        status: 'success',
-        message: 'Berhasil mengubah lagu',
-      });
-      response.code(200);
-      return response;
-    } catch (error) {
-      if (error instanceof ClientError) {
-        const response = h.response({
-          status: 'fail',
-          message: error.message,
-        });
-        response.code(error.statusCode);
-        return response;
-      }
-
-      // Server Error
-      const response = h.response({
-        status: 'error',
-        message: 'Internal Server Error',
-      });
-      response.code(500);
-      console.error(error);
-      return response;
-    }
+    await this._service.editSongById(id, {
+      title,
+      year,
+      genre,
+      performer,
+      duration,
+      albumId,
+    });
+    const response = h.response({
+      status: 'success',
+      message: 'Berhasil mengubah lagu',
+    });
+    response.code(200);
+    return response;
   }
 
   // DELETE SONG BY ID- Menghapus Lagu berdaar ID
@@ -228,34 +148,14 @@ class SongsHandler {
   //    - data:
   //        - message: *any
   async deleteSongByIdHandler(request, h) {
-    try {
-      const {id} = request.params;
-      await this._service.deleteSongById(id);
-      const response = h.response({
-        status: 'success',
-        message: 'Berhasil menghapus lagu',
-      });
-      response.code(200);
-      return response;
-    } catch (error) {
-      if (error instanceof ClientError) {
-        const response = h.response({
-          status: 'fail',
-          message: error.message,
-        });
-        response.code(error.statusCode);
-        return response;
-      }
-
-      // Server Error
-      const response = h.response({
-        status: 'error',
-        message: 'Internal Server Error',
-      });
-      response.code(500);
-      console.error(error);
-      return response;
-    }
+    const {id} = request.params;
+    await this._service.deleteSongById(id);
+    const response = h.response({
+      status: 'success',
+      message: 'Berhasil menghapus lagu',
+    });
+    response.code(200);
+    return response;
   }
 }
 

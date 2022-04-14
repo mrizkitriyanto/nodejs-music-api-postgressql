@@ -35,6 +35,16 @@ class AlbumsService {
     return result.rows[0];
   }
 
+  async getSongsByAlbumId(id) {
+    const query = {
+      text: 'SELECT id, title, performer FROM songs WHERE albumid = $1',
+      values: [id],
+    };
+    const result = await this._pool.query(query);
+
+    return result.rows;
+  }
+
   async addAlbum({name, year}) {
     const id = 'album-' + nanoid();
     const query = {
