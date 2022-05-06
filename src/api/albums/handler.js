@@ -12,6 +12,8 @@ class AlbumsHandler {
     this.putAlbumByIdHandler = this.putAlbumByIdHandler.bind(this);
     this.deleteAlbumByIdHandler = this.deleteAlbumByIdHandler.bind(this);
     this.postAlbumCoverHandler = this.postAlbumCoverHandler.bind(this);
+    this.postAlbumLikeHandler = this.postAlbumLikeHandler.bind(this);
+    this.getAlbumLikeHandler = this.getAlbumLikeHandler.bind(this);
   }
 
 
@@ -23,7 +25,7 @@ class AlbumsHandler {
   //    - data:
   //        - album: album
   async getAlbumsHandler(request, h) {
-    const albums = await this._service.getAlbums();
+    const {albums, isCache} = await this._service.getAlbums();
     const response = h.response({
       status: 'success',
       message: 'Berhasil mengambil daftar album',
@@ -31,6 +33,7 @@ class AlbumsHandler {
         albums,
       },
     });
+    if (isCache) response.header('X-Data-Source', 'cache');
     response.code(200);
     return response;
   }
@@ -44,9 +47,19 @@ class AlbumsHandler {
   //        - album: album
   async getAlbumByIdHandler(request, h) {
     const {id} = request.params;
-    const album = await this._service.getAlbumById(id);
-    const songs = await this._service.getSongsByAlbumId(id);
+    const {album, isCache: isCacheAlbum} = await this._service.getAlbumById(
+        id,
+    );
+    const {songs, isCache: isCacheSong} =
+        await this._service.getSongsByAlbumId(id);
+
+    // change key
+    album['coverUrl'] = album['coverurl'];
+    delete album['coverurl'];
+
+    // get songs list
     album['songs'] = songs;
+
     const response = h.response({
       status: 'success',
       message: 'Berhasil mengambil album',
@@ -55,6 +68,12 @@ class AlbumsHandler {
       },
     });
     response.code(200);
+
+    // Jika menerima dari cache maka header dicustom
+    if (isCacheAlbum || isCacheSong) {
+      response.header('X-Data-Source', 'cache');
+    }
+
     return response;
   }
 
@@ -128,7 +147,23 @@ class AlbumsHandler {
     return response;
   }
 
-  // / Album Cover Handler
+  // Album Like Handler
+  async postAlbumLikeHandler(request, h) {
+    const {id: albumid} = request.params;
+    const {id: userid} = request.auth.credentials;
+    // check album
+    await this._service.getAlbumById(albumid);
+
+    await this._service.setLikeAlbum(albumid, userid);
+    const response = h.response({
+      status: 'success',
+      message: 'Berhasil melakukan aksi',
+    });
+    response.code(201);
+    return response;
+  }
+
+  // Album Cover Handler
   async postAlbumCoverHandler(request, h) {
     const {cover} = request.payload;
     this._uploadValidator.validateImageHeaders(cover.hapi.headers);
@@ -142,6 +177,24 @@ class AlbumsHandler {
       message: 'Sampul berhasil diunggah',
     });
     response.code(201);
+
+    return response;
+  }
+
+  // [GET] Album Total Like Handler
+  async getAlbumLikeHandler(request, h) {
+    const {id} = request.params;
+    const {likes, isCache} = await this._service.getLikeAlbum(id);
+    const response = h.response({
+      status: 'success',
+      data: {
+        likes: likes.length,
+      },
+    });
+    response.code(200);
+
+    // Jika menerima dari cache maka header dicustom
+    if (isCache) response.header('X-Data-Source', 'cache');
 
     return response;
   }
