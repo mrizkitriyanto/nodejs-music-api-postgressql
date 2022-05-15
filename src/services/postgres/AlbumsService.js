@@ -172,17 +172,18 @@ class AlbumsService {
     } catch (error) {
       // if cache doesn't exist
       const query = {
-        text: 'SELECT userid FROM user_album_likes WHERE albumid = $1',
+        text: 'SELECT COUNT(userid) FROM user_album_likes WHERE albumid = $1',
         values: [albumid],
       };
       const result = await this._pool.query(query);
+      const resultCount = Number(result.rows[0].count);
 
       // save to cache
       await this._cacheService.set(
           `likes:${albumid}`,
-          JSON.stringify(result.rows),
+          JSON.stringify(resultCount),
       );
-      return {likes: result.rows};
+      return {likes: resultCount};
     }
   }
 }
