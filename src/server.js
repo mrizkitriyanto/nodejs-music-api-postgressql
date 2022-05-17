@@ -2,8 +2,6 @@
 require('dotenv').config();
 
 const ClientError = require('./exceptions/ClientError');
-const NotFoundError= require('./exceptions/NotFoundError');
-const AuthorizationError = require('./exceptions/AuthorizationError');
 // Hapi
 const Hapi = require('@hapi/hapi');
 const Jwt = require('@hapi/jwt');
@@ -183,22 +181,7 @@ const init = async () => {
       });
       newResponse.code(response.statusCode);
       return newResponse;
-    } else if (response instanceof NotFoundError) {
-      const newResponse = h.response({
-        status: 'fail',
-        message: error.message,
-      });
-      newResponse.code(response.statusCode);
-      return newResponse;
-    } else if (response instanceof AuthorizationError) {
-      const newResponse = h.response({
-        status: 'fail',
-        message: error.message,
-      });
-      newResponse.code(response.statusCode);
-      return newResponse;
     }
-
     // jika bukan ClientError, lanjutkan dengan response
     // sebelumnya (tanpa terintervensi)
     return response.continue || response;

@@ -170,8 +170,8 @@ class AlbumsHandler {
 
     const filename = await this._storageService.writeFile(cover, cover.hapi);
     const {id} = request.params;
-    const path = `http://${process.env.HOST}:${process.env.PORT}/albums/images/${filename}`;
-    await this._service.insertAlbumCover(id, path);
+    const fileLocation = `${request.headers['x-forwarded-proto'] || request.server.info.protocol}://${request.info.host}/albums/images/${filename}`;
+    await this._service.insertAlbumCover(id, fileLocation);
     const response = h.response({
       status: 'success',
       message: 'Sampul berhasil diunggah',
